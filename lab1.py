@@ -25,12 +25,15 @@ def task2(matrix):
     
     return max(diagonal_sums) if diagonal_sums else 0
 
-size = 5
-matrix = fillMatrix(size)
-for row in matrix:
-    print(row)
-    
-task1(matrix)
-max_sum = task2(matrix)
-print(f"The maximum sum of a diagonal among parallel main diagonals: {max_sum}")
+def main():
+    size = 5
+    matrix = fillMatrix(size)
+    for row in matrix:
+        print(row)
+        
+    task1(matrix)
+    max_sum = task2(matrix)
+    print(f"The maximum sum of a diagonal among parallel main diagonals: {max_sum}")
  
+if __name__ == '__main__':
+    main()

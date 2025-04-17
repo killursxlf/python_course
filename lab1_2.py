@@ -1,52 +1,64 @@
-import random
-
 def fill_matrix(rows, cols):
     matrix = []
+    print(f"Enter the elements of a {rows}x{cols} matrix:")
     for i in range(rows):
-        row = [random.randint(0, 100) for _ in range(cols)]
+        row = []
+        for j in range(cols):
+            while True:
+                try:
+                    val = int(input(f"  [{i}][{j}]: ").strip())
+                    break
+                except ValueError:
+                    print("Invalid input. Please enter an integer.")
+            row.append(val)
         matrix.append(row)
     return matrix
-
 
 def print_matrix(matrix):
     for row in matrix:
         print("\t".join(map(str, row)))
-    print() 
-    
-def find_k(matrix):
-    matching_indices = []
-    size = len(matrix)
-    
-    for k in range(size):
-        row = matrix[k]
-        column = [matrix[i][k] for i in range(size)]
-        
-        if row == column:
-            matching_indices.append(k)
-            print(f"Find k: {k}")
-    return matching_indices
+    print()
+
+def find_matching_k(matrix):
+    matching = []
+    n = len(matrix)
+    for k in range(n):
+        if matrix[k] == [matrix[i][k] for i in range(n)]:
+            matching.append(k)
+    return matching
+
+def sum_rows_with_negative(matrix):
+    sums = {}
+    for idx, row in enumerate(matrix):
+        if any(x < 0 for x in row):
+            sums[idx] = sum(row)
+    return sums
 
 def main():
-    
-    try:
-        size = input(" '8x8' / '16x16' ").strip().lower()
-    except ValueError:
-        print("Please input correct form")
+    size = input("Choose size ('8x8' or '16x16'): ").strip().lower()
+    if size not in ("8x8", "16x16"):
+        print("Invalid size. Please enter '8x8' or '16x16'.")
         return
 
-    if size == "8x8":
-        matrix = fill_matrix(8, 8)
-    elif size == "16x16":
-        matrix = fill_matrix(16, 16)
-    else:
-        print("input correct form ")
-        return
-    
+    rows, cols = map(int, size.split('x'))
+    matrix = fill_matrix(rows, cols)
 
     print("\nMatrix:")
     print_matrix(matrix)
-    result = find_k(matrix)
-    print("\nRow:", result)    
 
-if __name__ == '__main__':
+    matching_k = find_matching_k(matrix)
+    if matching_k:
+        print("Indices k where k-th row equals k-th column:", matching_k)
+    else:
+        print("No k found where a row equals its corresponding column.")
+
+    neg_sums = sum_rows_with_negative(matrix)
+    if neg_sums:
+        print("\nSum of elements in rows containing at least one negative element:")
+        for idx, total in neg_sums.items():
+            print(f"  Row {idx}: sum = {total}")
+    else:
+        print("\nNo rows contain negative elements.")
+
+if __name__ == "__main__":
     main()
