@@ -12,31 +12,21 @@ def print_matrix(matrix):
         print("\t".join(map(str, row)))
     print()  
 
-def shift_right(matrix, n):
-
-    rows = len(matrix)
-    if rows == 0:
+def shift_right(matrix, n):    
+    if not matrix:
         return matrix
-    cols = len(matrix[0])
-    n = n % cols 
-    new_matrix = []
-    for row in matrix:
-        new_row = row[-n:] + row[:-n]
-        new_matrix.append(new_row)
-    return new_matrix
+    
+    n = n % len(matrix[0]) 
+    return [row[-n:] + row[:-n] for row in matrix]
 
 def shift_down(matrix, n):
     rows = len(matrix)
     if rows == 0:
         return matrix
+    
     cols = len(matrix[0])
-    n = n % rows  
-    new_matrix = [row[:] for row in matrix]  
-    for j in range(cols):
-        col = [matrix[i][j] for i in range(rows)]
-        new_col = col[-n:] + col[:-n]
-        for i in range(rows):
-            new_matrix[i][j] = new_col[i]
+    n = n % rows 
+    new_matrix = matrix[-n:] + matrix[:-n]
     return new_matrix
 
 def main():
@@ -68,6 +58,7 @@ def main():
 
     print("\nMatrix after shift:")
     print_matrix(shifted_matrix)
+
 
 if __name__ == '__main__':
     main()
