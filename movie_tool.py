@@ -1,66 +1,32 @@
-import os
-import requests
 from collections import defaultdict
 from datetime import datetime, timedelta
-from dotenv import load_dotenv
+from fetcher import TMDBFetcher
 import copy
 import csv
 
-load_dotenv()
-
 class MovieDataTool:
-    def __init__(self, pages_to_fetch):
-        self.pages_to_fetch = pages_to_fetch
-        self.base_url = (
-            "https://api.themoviedb.org/3/discover/movie?"
-            "include_adult=false&include_video=false&sort_by=popularity.desc&page={}"
-        )
-        self.genre_url = "https://api.themoviedb.org/3/genre/movie/list?language=en"
-        token = os.getenv('TOKEN')
-        if not token:
-            raise ValueError(
-                "TOKEN environment variable not set"
-            )
-        self.headers = {
-            "accept": "application/json",
-            "Authorization": f"Bearer {token}"
-        }
+    def __init__(self):
+        self.fetcher = TMDBFetcher()
         self.data = []
         self.genres = {}
         self._initial_data = []
 
-
     def fetch_data(self):
-        response = requests.get(self.genre_url, headers=self.headers)
-        response.raise_for_status()
-        self.genres = {
-            genre['id']: genre['name']
-            for genre in response.json().get('genres', [])
-        }
-        for page in range(1, self.pages_to_fetch + 1):
-            response = requests.get(
-                self.base_url.format(page), headers=self.headers
-            )
-            response.raise_for_status()
-            self.data.extend(
-                response.json().get('results', [])
-            )
+        self.fetcher.fetch_all()
+        self.data = self.fetcher.data
+        self.genres = self.fetcher.genres
         self._initial_data = copy.deepcopy(self.data)
-
 
     def get_all_data(self):
         return self.data
 
-
     def get_movies_by_step(self):
         return self.data[3:20:4]
-
 
     def get_most_popular_title(self):
         return max(
             self.data, key=lambda m: m['popularity']
         )['title']
-
 
     def search_by_keywords(self, *keywords):
         return [
@@ -70,7 +36,6 @@ class MovieDataTool:
             )
         ]
 
-
     def get_unique_genres(self):
         return frozenset(
             self.genres.get(g, g) 
@@ -78,12 +43,10 @@ class MovieDataTool:
             for g in movie['genre_ids']
         )
 
-
     def delete_by_genre(self, genre_id):
         self.data = [
             m for m in self.data if genre_id not in m['genre_ids']
         ]
-
 
     def get_most_common_genres(self):
         genre_count = defaultdict(int)
@@ -94,7 +57,6 @@ class MovieDataTool:
             [(self.genres.get(k, k), v) for k, v in genre_count.items()],
             key=lambda x: x[1], reverse=True
         )
-
 
     def get_genre_based_pairs(self):
         groups = defaultdict(list)
@@ -107,14 +69,12 @@ class MovieDataTool:
             for pair in zip(titles[::2], titles[1::2])
         )
 
-
     def get_initial_and_modified_data(self):
         modified = copy.deepcopy(self._initial_data)
         for movie in modified:
             if movie['genre_ids']:
                 movie['genre_ids'][0] = 22
         return self._initial_data, modified
-
 
     def get_structured_movie_data(self):
         result = []
@@ -136,16 +96,12 @@ class MovieDataTool:
                 })
             except Exception:
                 continue
-        return sorted(
-            result, key=lambda x: (-x['score'], -x['popularity'])
-        )
-
+        return sorted(result, key=lambda x: (-x['score'], -x['popularity']))
 
     def write_structured_data_to_csv(self, filepath):
         structured_data = self.get_structured_movie_data()
+        
         with open(filepath, mode='w', newline='', encoding='utf-8') as file:
-            writer = csv.DictWriter(
-                file, fieldnames=structured_data[0].keys()
-            )
+            writer = csv.DictWriter(file, fieldnames=structured_data[0].keys())
             writer.writeheader()
             writer.writerows(structured_data)

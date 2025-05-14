@@ -4,7 +4,7 @@ from movie_tool import MovieDataTool
 def print_menu():
     print("""
 === MovieDataTool Menu ===
-1. Set number of pages to fetch and load data
+1. Load data from MVDB
 2. Show all movies
 3. Get movies by step (3:20:4)
 4. Get the most popular movie
@@ -20,7 +20,6 @@ def print_menu():
 """)
 
 def require_data(func):
-    """Decorator: if data not loaded, prints a message and does not call the function."""
     def wrapper(state):
         if state['tool'] is None:
             print("Please load data first (option 1).\n")
@@ -100,7 +99,14 @@ def cmd_save_csv(state):
         print("Error writing CSV:", e, "\n")
 
 def main():
-    state = {'tool': None}
+    if not os.getenv('TOKEN'):
+        print("Error: TOKEN environment variable not set.")
+        return
+    
+    state = {
+        'tool': MovieDataTool(),
+        'loaded': False
+    }
 
     commands = {
         "2": cmd_show_all,
@@ -121,14 +127,10 @@ def main():
         choice = input("Select an option: ").strip()
 
         if choice == "1":
-            try:
-                pages = int(input("How many pages to fetch? ").strip())
-                state['tool'] = MovieDataTool(pages)
-                print("Fetching data…")
-                state['tool'].fetch_data()
-                print(f"Loaded {len(state['tool'].get_all_data())} movies.\n")
-            except ValueError:
-                print("Please enter an integer.\n")
+            print("Loading data...")
+            state['tool'].fetch_data()
+            state['loaded'] = True
+            print(f"Loaded {len(state['tool'].get_all_data())}")
 
         elif choice == "0":
             print("Exiting.")
@@ -141,7 +143,4 @@ def main():
             print("Invalid choice. Please try again.\n")
 
 if __name__ == "__main__":
-    if not os.getenv("TOKEN"):
-        print("Error: TOKEN environment variable not set.")
-    else:
-        main()
+    main()
