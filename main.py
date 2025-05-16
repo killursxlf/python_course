@@ -1,10 +1,11 @@
 import argparse
 import sys
+import logging
 from pathlib import Path
 from constants import DEFAULT_API_URL, DEFAULT_CSV_NAME
 from io_utils import download_csv, load_csv, write_group_files, log_tree, archive_folder
 from processing import filter_records, enrich_records, remove_pre1960, group_by_decade_country
-from logger_config import configure_logging, get_logger
+from logger_config import configure_logging, initialize_logger
 
 
 def parse_args():
@@ -40,26 +41,9 @@ def parse_args():
     return parser.parse_args()
 
 
-def initialize_logger(output_dir: Path, base_name: str, level: str):
-    output_dir.mkdir(parents=True, exist_ok=True)
-    log_path = output_dir / f"{base_name}.log"
-    
-    logger = get_logger(base_name)
-    logger.setLevel(getattr(__import__('logging'), level))
-    
-    fh = __import__('logging').FileHandler(log_path, mode="w", encoding="utf-8")
-    
-    fmt = __import__('logging').Formatter("%(asctime)s — %(levelname)s — %(message)s")
-    
-    fh.setFormatter(fmt)
-    logger.addHandler(fh)
-    logger.info(f"Logger started at {level}")
-    return logger
-
-
 def main():
     args = parse_args()
-    configure_logging(getattr(__import__('logging'), args.log_level))
+    configure_logging(getattr(logging, args.log_level))
     dest = Path(args.dest_folder)
     logger = initialize_logger(dest, args.filename, args.log_level)
 
