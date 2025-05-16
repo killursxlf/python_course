@@ -56,6 +56,7 @@ class MovieDataTool:
         return sorted(
             [(self.genres.get(k, k), v) for k, v in genre_count.items()],
             key=lambda x: x[1], reverse=True
+            
         )
 
     def get_genre_based_pairs(self):

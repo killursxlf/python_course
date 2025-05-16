@@ -36,3 +36,5 @@ class TMDBFetcher:
         self.fetch_genres()
         self.fetch_movies()
         self._initial_data = copy.deepcopy(self.data)
+
+
