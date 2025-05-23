@@ -43,7 +43,7 @@ def parse_args():
 
 def main():
     args = parse_args()
-    configure_logging(getattr(logging, args.log_level))
+    configure_logging(args.log_level)
     dest = Path(args.dest_folder)
     logger = initialize_logger(dest, args.filename, args.log_level)
 

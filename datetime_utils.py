@@ -1,5 +1,7 @@
 import re
-from datetime import timedelta, timezone
+from constants import (DEFAULT_REG_FORMAT)
+from datetime import timedelta, timezone, datetime
+
 
 def parse_timezone_offset(offset_str: str) -> timezone:
     match = re.match(r"^([+-])(\d{1,2}):?(\d{2})?$", offset_str)
@@ -15,5 +17,4 @@ def parse_timezone_offset(offset_str: str) -> timezone:
 
 
 def normalize_iso_datetime(iso_str: str) -> str:
-    cleaned = iso_str.rstrip("Z").split(".", 1)[0]
-    return cleaned.replace("T", " ")
+    return datetime.fromisoformat(iso_str).strftime(DEFAULT_REG_FORMAT)
