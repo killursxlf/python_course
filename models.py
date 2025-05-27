@@ -5,6 +5,7 @@ from validator import (
     validate_field_value,
     validate_amount
 )
+from config import (ALLOWED_ACCOUNT_TYPES, ALLOWED_ACCOUNT_STATUS, ALLOWED_CURRENCIES)
 
 
 @dataclass
@@ -54,12 +55,10 @@ class Account:
     status: str = None
 
     def __post_init__(self):
-        self.type = validate_field_value(self.type, {"credit", "debit"}, "type")
+        self.type = validate_field_value(self.type, ALLOWED_ACCOUNT_TYPES, "type")
         self.account_number = validate_account_number(self.account_number)
-        self.status = validate_field_value(self.status, {"silver", "gold", "platinum"}, "status")
-
-        if not self.currency or not isinstance(self.currency, str):
-            raise ValueError("currency cannot be empty")
+        self.status = validate_field_value(self.status, ALLOWED_ACCOUNT_STATUS, "status")
+        self.currency = validate_field_value(self.currency, ALLOWED_CURRENCIES, "currency")
         self.amount = validate_amount(self.amount)
 
 

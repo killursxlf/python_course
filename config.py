@@ -13,8 +13,8 @@ LOG_LEVEL = os.environ.get("LOG_LEVEL", "DEBUG")
 LOG_DIR = os.environ.get("LOG_DIR", "./logs")
 LOG_BASE_NAME = os.environ.get("LOG_BASE_NAME", "crossbank")
 
-ALLOWED_ACCOUNT_TYPES = {"personal", "business"}
-ALLOWED_ACCOUNT_STATUS = {"active", "blocked"}
+ALLOWED_ACCOUNT_TYPES = {"debit", "credit"}
+ALLOWED_ACCOUNT_STATUS = {"platinum", "gold", "silver"}
 ALLOWED_CURRENCIES = {"EUR", "USD", "UAH"}
 
 if not CURRENCY_API_KEY:

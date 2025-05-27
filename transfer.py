@@ -1,6 +1,7 @@
 from models import Account
 from currency import get_exchange_rate
 from helpers import api_response
+from queries import UPDATE_ACCOUNT_AMOUNT_BY_ID
 
 def do_transfer(cur, sender: Account, receiver: Account, amount: float):
     if sender.amount < amount:
@@ -18,8 +19,8 @@ def do_transfer(cur, sender: Account, receiver: Account, amount: float):
     new_sender_balance = sender.amount - amount
     new_receiver_balance = receiver.amount + receiver_amount
 
-    cur.execute("UPDATE Account SET amount=? WHERE id=?", (new_sender_balance, sender.id))
-    cur.execute("UPDATE Account SET amount=? WHERE id=?", (new_receiver_balance, receiver.id))
+    cur.execute(UPDATE_ACCOUNT_AMOUNT_BY_ID, (new_sender_balance, sender.id))
+    cur.execute(UPDATE_ACCOUNT_AMOUNT_BY_ID, (new_receiver_balance, receiver.id))
 
     return api_response(
         True,

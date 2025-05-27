@@ -3,6 +3,9 @@ from models import User, Bank, Account
 from logging_config import get_logger
 from helpers import api_response     
 from transfer import do_transfer
+from queries import (insert_rows, update_row, delete_row)
+from validator import validate_list
+from queries import (INSERT_TRANSACTION, SELECT_ACCOUNT_BY_ID, SELECT_BANK_NAME_BY_ID)
 
 logger = get_logger(__name__)
 
@@ -12,34 +15,20 @@ def unpack_rows(*args):
     return list(args)
 
 
-def insert_rows(conn, table, fields, objs):
-    cur = conn.cursor()
-    placeholders = ', '.join(['?'] * len(fields))
-    sql = f"INSERT INTO {table} ({', '.join(fields)}) VALUES ({placeholders})"
-    for obj in objs:
-        cur.execute(sql, [getattr(obj, f) for f in fields])
-    return len(objs)
-
-
-def update_row(conn, table, fields, pk_field, obj):
-    cur = conn.cursor()
-    set_clause = ', '.join([f"{f}=?" for f in fields])
-    sql = f"UPDATE {table} SET {set_clause} WHERE {pk_field}=?"
-    params = [getattr(obj, f) for f in fields] + [getattr(obj, pk_field)]
-    cur.execute(sql, params)
-    return cur.rowcount
-
-
-def delete_row(conn, table, pk_field, pk_value):
-    cur = conn.cursor()
-    sql = f"DELETE FROM {table} WHERE {pk_field}=?"
-    cur.execute(sql, (pk_value,))
-    return cur.rowcount
-
-
 @with_db_connection
 def add_users(conn, *users):
+    logger = get_logger("add-users")
     rows = unpack_rows(*users)
+
+    if any(isinstance(r, dict) for r in rows):
+        valid, errors = validate_list(
+            [r if isinstance(r, dict) else r.__dict__ for r in rows],
+            User
+        )
+        rows = valid
+        if errors:
+            logger.warning(f"Some users failed validation: {len(errors)} skipped.")
+
     fields = ["name", "surname", "birth_day", "accounts"]
     try:
         count = insert_rows(conn, "User", fields, rows)
@@ -75,7 +64,18 @@ def delete_user(conn, user_id: int):
 
 @with_db_connection
 def add_banks(conn, *banks):
+    logger = get_logger("add-banks")
     rows = unpack_rows(*banks)
+
+    if any(isinstance(r, dict) for r in rows):
+        valid, errors = validate_list(
+            [r if isinstance(r, dict) else r.__dict__ for r in rows],
+            Bank
+        )
+        rows = valid
+        if errors:
+            logger.warning(f"Some banks failed validation: {len(errors)} skipped.")
+
     fields = ["name"]
     try:
         count = insert_rows(conn, "Bank", fields, rows)
@@ -111,7 +111,18 @@ def delete_bank(conn, bank_id: int):
 
 @with_db_connection
 def add_accounts(conn, *accounts):
+    logger = get_logger("add-accounts")
     rows = unpack_rows(*accounts)
+
+    if any(isinstance(r, dict) for r in rows):
+        valid, errors = validate_list(
+            [r if isinstance(r, dict) else r.__dict__ for r in rows],
+            Account
+        )
+        rows = valid
+        if errors:
+            logger.warning(f"Some accounts failed validation: {len(errors)} skipped.")
+
     fields = ["user_id", "type", "account_number", "bank_id", "currency", "amount", "status"]
     try:
         count = insert_rows(conn, "Account", fields, rows)
@@ -148,13 +159,13 @@ def delete_account(conn, account_id: int):
 def transfer_money(conn, sender_account_id: int, receiver_account_id: int, amount: float, currency: str):
     try:
         cur = conn.cursor()
-        cur.execute("SELECT id, user_id, type, account_number, bank_id, currency, amount, status FROM Account WHERE id=?", (sender_account_id,))
+        cur.execute(SELECT_ACCOUNT_BY_ID, (sender_account_id,))
         sender_row = cur.fetchone()
         if not sender_row:
             return api_response(False, "Sender account not found", 404, "warning")
         sender = Account(*sender_row)
 
-        cur.execute("SELECT id, user_id, type, account_number, bank_id, currency, amount, status FROM Account WHERE id=?", (receiver_account_id,))
+        cur.execute(SELECT_ACCOUNT_BY_ID, (receiver_account_id,))
         receiver_row = cur.fetchone()
         if not receiver_row:
             return api_response(False, "Receiver account not found", 404, "warning")
@@ -164,10 +175,7 @@ def transfer_money(conn, sender_account_id: int, receiver_account_id: int, amoun
         if not transfer_result["success"]:
             return transfer_result
 
-        cur.execute(
-            '''INSERT INTO "Transaction"
-               (bank_sender_name, account_sender_id, bank_receiver_name, account_receiver_id, sent_currency, sent_amount, datetime)
-               VALUES (?, ?, ?, ?, ?, ?, datetime('now'))''',
+        cur.execute(INSERT_TRANSACTION,
             (
                 _get_bank_name(cur, sender.bank_id),
                 sender.id,
@@ -183,6 +191,6 @@ def transfer_money(conn, sender_account_id: int, receiver_account_id: int, amoun
         return api_response(False, f"Error during transfer: {e}", 500, "error")
 
 def _get_bank_name(cur, bank_id):
-    cur.execute("SELECT name FROM Bank WHERE id=?", (bank_id,))
+    cur.execute(SELECT_BANK_NAME_BY_ID, (bank_id,))
     row = cur.fetchone()
     return row[0] if row else "Unknown"

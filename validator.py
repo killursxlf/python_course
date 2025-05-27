@@ -1,4 +1,26 @@
 import re
+from typing import Type, Tuple, List, Any
+from logging_config import get_logger
+
+logger = get_logger(__name__)
+
+
+def validate_list(raw_list: List[dict], cls: Type) -> Tuple[List[Any], List[dict]]:
+    """
+    Try to create dataclass instances from a list of dicts.
+    :return: a tuple (valid_objects, invalid_rows)
+    """
+    valid = []
+    errors = []
+    for i, row in enumerate(raw_list, 1):
+        try:
+            obj = cls(**row)
+            valid.append(obj)
+        except Exception as e:
+            if logger:
+                logger.error(f"Row {i} skipped during validation: {e}")
+            errors.append({"row_num": i, "error": str(e), "row": row})
+    return valid, errors
 
 
 def validate_full_name(full_name: str) -> tuple[str, str]:
