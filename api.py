@@ -15,144 +15,130 @@ def unpack_rows(*args):
     return list(args)
 
 
-@with_db_connection
-def add_users(conn, *users):
-    logger = get_logger("add-users")
-    rows = unpack_rows(*users)
+def add_objects(conn, raw_items: tuple, table: str, fields: list[str], cls: type,):
+    """
+    Generic bulk‐insert into `table` of dataclass `cls`.
+    1) unpacks *args or [list]
+    2) auto‐validates any dicts into `cls` via validate_dataclass_list
+    3) calls insert_rows() SQL helper
+    Returns api_response dict.
+    """
+    items = unpack_rows(*raw_items)
 
-    if any(isinstance(r, dict) for r in rows):
-        valid, errors = validate_list(
-            [r if isinstance(r, dict) else r.__dict__ for r in rows],
-            User
-        )
-        rows = valid
+    if any(isinstance(i, dict) for i in items):
+        raw_dicts = [
+            i if isinstance(i, dict) else i.__dict__
+            for i in items
+        ]
+        valid, errors = validate_list(raw_dicts, cls)
+        items = valid
         if errors:
-            logger.warning(f"Some users failed validation: {len(errors)} skipped.")
+            logger.warning(f"{len(errors)} {cls.__name__} rows failed validation, skipped")
 
-    fields = ["name", "surname", "birth_day", "accounts"]
     try:
-        count = insert_rows(conn, "User", fields, rows)
-        return api_response(True, f"Users added: {count}")
+        count = insert_rows(conn, table, fields, items)
+        return api_response(True, f"{cls.__name__}s added: {count}")
     except Exception as e:
-        return api_response(False, f"Error adding user: {e}", 500, "error")
+        return api_response(False, f"Error adding {cls.__name__}: {e}", 500, "error")
+    
 
-
-@with_db_connection
-def update_user(conn, user: User):
-    fields = ["name", "surname", "birth_day", "accounts"]
+def update_object(conn, obj, table: str, fields: list[str], pk_field: str):
+    """
+    Generic update function for a single dataclass row.
+    Args:
+        conn: active db connection
+        obj: dataclass instance
+        table: table name (str)
+        fields: list of fields to update (list[str])
+        pk_field: primary key field (e.g. 'id')
+        logger_name: name for logger
+    Returns:
+        dict with api_response
+    """
     try:
-        if user.id is None:
-            return api_response(False, "User id is required for update", 400, "warning")
-        rowcount = update_row(conn, "User", fields, "id", user)
+        if getattr(obj, pk_field, None) is None:
+            return api_response(
+                False, f"{table[:-1].capitalize()} {pk_field} is required for update", 400, "warning"
+            )
+        rowcount = update_row(conn, table, fields, pk_field, obj)
         if rowcount == 0:
-            return api_response(False, "User not found", 404, "warning")
-        return api_response(True, f"User with id={user.id} updated")
+            return api_response(False, f"{table[:-1].capitalize()} not found", 404, "warning")
+        logger.info(f"{table[:-1].capitalize()} with {pk_field}={getattr(obj, pk_field)} updated")
+        return api_response(True, f"{table[:-1].capitalize()} with {pk_field}={getattr(obj, pk_field)} updated")
     except Exception as e:
-        return api_response(False, f"Error updating user: {e}", 500, "error")
+        logger.error(f"Error updating {table[:-1].capitalize()}: {e}")
+        return api_response(False, f"Error updating {table[:-1].capitalize()}: {e}", 500, "error")
 
 
-@with_db_connection
-def delete_user(conn, user_id: int):
+def delete_object(conn, table: str, pk_field: str, pk_value: int):
+    """
+    Generic delete function for a single row.
+    Args:
+        conn: db connection
+        table: table name
+        pk_field: primary key field (e.g. "id")
+        pk_value: value of the primary key
+        logger_name: name for logger
+    Returns:
+        dict with api_response
+    """
     try:
-        rowcount = delete_row(conn, "User", "id", user_id)
+        rowcount = delete_row(conn, table, pk_field, pk_value)
         if rowcount == 0:
-            return api_response(False, "User not found", 404, "warning")
-        return api_response(True, f"User with id={user_id} deleted")
+            logger.warning(f"{table[:-1].capitalize()} with {pk_field}={pk_value} not found for deletion")
+            return api_response(False, f"{table[:-1].capitalize()} not found", 404, "warning")
+        logger.info(f"{table[:-1].capitalize()} with {pk_field}={pk_value} deleted")
+        return api_response(True, f"{table[:-1].capitalize()} with {pk_field}={pk_value} deleted")
     except Exception as e:
-        return api_response(False, f"Error deleting user: {e}", 500, "error")
+        logger.error(f"Error deleting {table[:-1].capitalize()}: {e}")
+        return api_response(False, f"Error deleting {table[:-1].capitalize()}: {e}", 500, "error")
 
 
 @with_db_connection
 def add_banks(conn, *banks):
-    logger = get_logger("add-banks")
-    rows = unpack_rows(*banks)
-
-    if any(isinstance(r, dict) for r in rows):
-        valid, errors = validate_list(
-            [r if isinstance(r, dict) else r.__dict__ for r in rows],
-            Bank
-        )
-        rows = valid
-        if errors:
-            logger.warning(f"Some banks failed validation: {len(errors)} skipped.")
-
-    fields = ["name"]
-    try:
-        count = insert_rows(conn, "Bank", fields, rows)
-        return api_response(True, f"Banks added: {count}")
-    except Exception as e:
-        return api_response(False, f"Error adding bank: {e}", 500, "error")
+    return add_objects(conn, banks, table="Bank", fields=["name"], cls=Bank)
 
 
 @with_db_connection
-def update_bank(conn, bank: Bank):
-    fields = ["name"]
-    try:
-        if bank.id is None:
-            return api_response(False, "Bank id is required for update", 400, "warning")
-        rowcount = update_row(conn, "Bank", fields, "id", bank)
-        if rowcount == 0:
-            return api_response(False, "Bank not found", 404, "warning")
-        return api_response(True, f"Bank with id={bank.id} updated")
-    except Exception as e:
-        return api_response(False, f"Error updating bank: {e}", 500, "error")
-
-
-@with_db_connection
-def delete_bank(conn, bank_id: int):
-    try:
-        rowcount = delete_row(conn, "Bank", "id", bank_id)
-        if rowcount == 0:
-            return api_response(False, "Bank not found", 404, "warning")
-        return api_response(True, f"Bank with id={bank_id} deleted")
-    except Exception as e:
-        return api_response(False, f"Error deleting bank: {e}", 500, "error")
+def add_users(conn, *users):
+    return add_objects(conn, users, table="User", fields=["name", "surname", "birth_day", "accounts"], cls=User)
 
 
 @with_db_connection
 def add_accounts(conn, *accounts):
-    logger = get_logger("add-accounts")
-    rows = unpack_rows(*accounts)
+    return add_objects(conn,accounts, table="Account", fields=["user_id", "type", "account_number", "bank_id", "currency", "amount", "status"],
+                        cls=Account)
 
-    if any(isinstance(r, dict) for r in rows):
-        valid, errors = validate_list(
-            [r if isinstance(r, dict) else r.__dict__ for r in rows],
-            Account
-        )
-        rows = valid
-        if errors:
-            logger.warning(f"Some accounts failed validation: {len(errors)} skipped.")
 
-    fields = ["user_id", "type", "account_number", "bank_id", "currency", "amount", "status"]
-    try:
-        count = insert_rows(conn, "Account", fields, rows)
-        return api_response(True, f"Accounts added: {count}")
-    except Exception as e:
-        return api_response(False, f"Error adding account: {e}", 500, "error")
+@with_db_connection
+def update_user(conn, user: User):
+    return update_object(conn,user, table="User", fields=["name", "surname", "birth_day", "accounts"], pk_field="id")
+
+
+@with_db_connection
+def update_bank(conn, bank: Bank):
+    return update_object(conn, bank, table="Bank", fields=["name"], pk_field="id")
 
 
 @with_db_connection
 def update_account(conn, account: Account):
-    fields = ["user_id", "type", "account_number", "bank_id", "currency", "amount", "status"]
-    try:
-        if account.id is None:
-            return api_response(False, "Account id is required for update", 400, "warning")
-        rowcount = update_row(conn, "Account", fields, "id", account)
-        if rowcount == 0:
-            return api_response(False, "Account not found", 404, "warning")
-        return api_response(True, f"Account with id={account.id} updated")
-    except Exception as e:
-        return api_response(False, f"Error updating account: {e}", 500, "error")
+    return update_object(conn, account, table="Account", fields=["user_id", "type", "account_number", "bank_id", "currency", "amount", "status"], 
+                         pk_field="id")
+
+
+@with_db_connection
+def delete_user(conn, user_id: int):
+    return delete_object(conn, table="User", pk_field="id", pk_value=user_id)
+
+
+@with_db_connection
+def delete_bank(conn, bank_id: int):
+    return delete_object(conn, table="Bank", pk_field="id", pk_value=bank_id)
+
 
 @with_db_connection
 def delete_account(conn, account_id: int):
-    try:
-        rowcount = delete_row(conn, "Account", "id", account_id)
-        if rowcount == 0:
-            return api_response(False, "Account not found", 404, "warning")
-        return api_response(True, f"Account with id={account_id} deleted")
-    except Exception as e:
-        return api_response(False, f"Error deleting account: {e}", 500, "error")
+    return delete_object(conn, table="Account", pk_field="id", pk_value=account_id)
 
 
 @with_db_connection

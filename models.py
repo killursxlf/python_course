@@ -5,7 +5,11 @@ from validator import (
     validate_field_value,
     validate_amount
 )
-from config import (ALLOWED_ACCOUNT_TYPES, ALLOWED_ACCOUNT_STATUS, ALLOWED_CURRENCIES)
+from config import (
+    ALLOWED_ACCOUNT_TYPES,
+    ALLOWED_ACCOUNT_STATUS,
+    ALLOWED_CURRENCIES
+)
 
 
 @dataclass
@@ -17,6 +21,13 @@ class Bank:
         if not self.name or not isinstance(self.name, str):
             raise ValueError("Bank name must be a string and cannot be empty")
         self.name = self.name.strip()
+
+    @classmethod
+    def built_from_dict(cls, row: dict):
+        return cls(
+            id=int(row.get("id", 0)) if row.get("id") else None,
+            name=row["name"]
+        )
 
     @classmethod
     def from_name(cls, name: str):
@@ -36,6 +47,21 @@ class User:
             raise ValueError("Name and Surname cannot be empty")
         if self.accounts is None:
             self.accounts = ""
+
+    @classmethod
+    def built_from_dict(cls, row: dict):
+        if "user_full_name" in row:
+            name, surname = validate_full_name(row["user_full_name"])
+        else:
+            name = row.get("name")
+            surname = row.get("surname")
+        return cls(
+            id=int(row.get("id", 0)) if row.get("id") else None,
+            name=name,
+            surname=surname,
+            birth_day=row.get("birth_day"),
+            accounts=row.get("accounts", "")
+        )
 
     @classmethod
     def from_full_name(cls, full_name: str, birth_day=None, accounts=""):
@@ -61,6 +87,19 @@ class Account:
         self.currency = validate_field_value(self.currency, ALLOWED_CURRENCIES, "currency")
         self.amount = validate_amount(self.amount)
 
+    @classmethod
+    def built_from_dict(cls, row: dict):
+        return cls(
+            id=int(row.get("id", 0)) if row.get("id") else None,
+            user_id=int(row["user_id"]),
+            type=row["type"],
+            account_number=row["account_number"],
+            bank_id=int(row["bank_id"]),
+            currency=row["currency"],
+            amount=float(row["amount"]),
+            status=row["status"]
+        )
+
 
 @dataclass
 class Transaction:
@@ -81,3 +120,16 @@ class Transaction:
         if not self.sent_currency or not isinstance(self.sent_currency, str):
             raise ValueError("sent_currency cannot be empty")
         self.sent_amount = validate_amount(self.sent_amount)
+
+    @classmethod
+    def built_from_dict(cls, row: dict):
+        return cls(
+            id=int(row.get("id", 0)) if row.get("id") else None,
+            bank_sender_name=row["bank_sender_name"],
+            account_sender_id=int(row["account_sender_id"]),
+            bank_receiver_name=row["bank_receiver_name"],
+            account_receiver_id=int(row["account_receiver_id"]),
+            sent_currency=row["sent_currency"],
+            sent_amount=float(row["sent_amount"]),
+            datetime=row.get("datetime")
+        )

@@ -44,25 +44,13 @@ def objects_from_csv(
 
 
 def user_row_parser(row):
-    return User.from_full_name(
-        row['user_full_name'],
-        birth_day=row.get('birth_day'),
-        accounts=row.get('accounts', "")
-    )
+    return User.built_from_dict(row)
 
 
 def bank_row_parser(row):
-    return Bank.from_name(row['name'])
+    return Bank.built_from_dict(row)
 
 
 def account_row_parser(row):
-    return Account(
-        user_id=int(row['user_id']),
-        type=row['type'],
-        account_number=row['account_number'],
-        bank_id=int(row['bank_id']),
-        currency=row['currency'],
-        amount=float(row['amount']),
-        status=row['status']
-    )
+    return Account.built_from_dict(row)
     

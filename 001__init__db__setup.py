@@ -41,19 +41,16 @@ def main():
     );
     ''')
 
-    columns = (
-        "id INTEGER PRIMARY KEY,"
-        "\n        name TEXT NOT NULL,"
-        "\n        surname TEXT NOT NULL,"
-        "\n        birth_day TEXT,"
-        "\n        accounts TEXT NOT NULL"
-    )
-    if args.unique_user_names:
-        columns += ",\n        UNIQUE(name, surname)"
+    unique_constraint = ",\n        UNIQUE(name, surname)" if args.unique_user_names else ""
 
     user_sql = f"""
     CREATE TABLE IF NOT EXISTS User (
-        {columns}
+        id INTEGER PRIMARY KEY,
+        name TEXT NOT NULL,
+        surname TEXT NOT NULL,
+        birth_day TEXT,
+        accounts TEXT NOT NULL
+        {unique_constraint}
     );
     """
     cur.execute(user_sql)
