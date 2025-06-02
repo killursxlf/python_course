@@ -18,7 +18,7 @@ def validate_list(raw_list: List[dict], cls: Type) -> Tuple[List[Any], List[dict
             valid.append(obj)
         except Exception as e:
             if logger:
-                logger.error(f"Row {i} skipped during validation: {e}")
+                logger.error("Row %d skipped during validation: %s", i, e)
             errors.append({"row_num": i, "error": str(e), "row": row})
     return valid, errors
 

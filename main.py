@@ -1,3 +1,6 @@
+# pylint: disable=no-value-for-parameter
+
+
 from utils import objects_from_csv, user_row_parser
 from api import add_users, add_banks, add_accounts, transfer_money
 from analytics import (
@@ -64,6 +67,7 @@ def main():
 
     print("\n=== ASSIGN RANDOM DISCOUNTS ===")
     print(assign_random_discounts())
+
 
 if __name__ == "__main__":
     main()

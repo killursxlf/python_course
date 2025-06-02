@@ -14,7 +14,7 @@ from queries import (
 )
 
 
-def _safe_db_call(func, func_name, *args, **kwargs):
+def safe_db_call(func, *args, **kwargs):
     try:
         return func(*args, **kwargs)
     except Exception as e:
@@ -31,7 +31,7 @@ def assign_random_discounts(cur):
         discounts = {uid: random.choice([25, 30, 50]) for uid in chosen_users}
         return {"success": True, "message": "Discounts assigned", "status_code": 200, "discounts": discounts}
 
-    result = _safe_db_call(_core, "assign_random_discounts")
+    result = safe_db_call(_core, "assign_random_discounts")
     return api_response(**result)
 
 
@@ -42,7 +42,7 @@ def get_users_with_debt(cur):
         users = [f"{first} {last}" for first, last in cur.fetchall()]
         return {"success": True, "message": "Users with debts", "status_code": 200, "users": users}
 
-    result = _safe_db_call(_core, "get_users_with_debt")
+    result = safe_db_call(_core, "get_users_with_debt")
     return api_response(**result)
 
 
@@ -56,7 +56,7 @@ def bank_with_biggest_capital(cur):
         bank_id, name, total = row
         return {"success": True, "bank_id": bank_id, "name": name, "capital": total, "status_code": 200}
 
-    result = _safe_db_call(_core, "bank_with_biggest_capital")
+    result = safe_db_call(_core, "bank_with_biggest_capital")
     return api_response(**result)
 
 
@@ -79,7 +79,7 @@ def bank_with_oldest_client(cur):
             "status_code": 200
         }
 
-    result = _safe_db_call(_core, "bank_with_oldest_client")
+    result = safe_db_call(_core, "bank_with_oldest_client")
     return api_response(**result)
 
 
@@ -93,7 +93,7 @@ def bank_with_most_active_users(cur):
         bank_name, user_count = row
         return {"success": True, "bank_name": bank_name, "user_count": user_count, "status_code": 200}
 
-    result = _safe_db_call(_core, "bank_with_most_active_users")
+    result = safe_db_call(_core, "bank_with_most_active_users")
     return api_response(**result)
 
 
@@ -106,7 +106,7 @@ def delete_incomplete_users_and_accounts(cur):
         users_deleted = cur.rowcount
         return {"success": True, "accounts_deleted": accounts_deleted, "users_deleted": users_deleted, "status_code": 200}
 
-    result = _safe_db_call(_core, "delete_incomplete_users_and_accounts")
+    result = safe_db_call(_core, "delete_incomplete_users_and_accounts")
     return api_response(**result)
 
 
@@ -123,5 +123,5 @@ def user_transactions_last_3_months(cur, user_id):
         transactions = cur.fetchall()
         return {"success": True, "transactions": transactions, "status_code": 200}
 
-    result = _safe_db_call(_core, "user_transactions_last_3_months")
+    result = safe_db_call(_core, "user_transactions_last_3_months")
     return api_response(**result)

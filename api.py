@@ -1,13 +1,14 @@
 from db import with_db_connection
 from models import User, Bank, Account
 from logging_config import get_logger
-from helpers import api_response     
+from helpers import api_response
 from transfer import do_transfer
-from queries import (insert_rows, update_row, delete_row)
+from queries import insert_rows, update_row, delete_row
 from validator import validate_list
-from queries import (INSERT_TRANSACTION, SELECT_ACCOUNT_BY_ID, SELECT_BANK_NAME_BY_ID)
+from queries import INSERT_TRANSACTION, SELECT_ACCOUNT_BY_ID, SELECT_BANK_NAME_BY_ID
 
 logger = get_logger(__name__)
+
 
 def unpack_rows(*args):
     if len(args) == 1 and isinstance(args[0], list):
@@ -15,7 +16,13 @@ def unpack_rows(*args):
     return list(args)
 
 
-def add_objects(cur, raw_items: tuple, table: str, fields: list[str], cls: type,):
+def add_objects(
+    cur,
+    raw_items: tuple,
+    table: str,
+    fields: list[str],
+    cls: type,
+):
     """
     Generic bulk-insert into a table of dataclass instances.
 
@@ -35,21 +42,22 @@ def add_objects(cur, raw_items: tuple, table: str, fields: list[str], cls: type,
     items = unpack_rows(*raw_items)
 
     if any(isinstance(i, dict) for i in items):
-        raw_dicts = [
-            i if isinstance(i, dict) else i.__dict__
-            for i in items
-        ]
+        raw_dicts = [i if isinstance(i, dict) else i.__dict__ for i in items]
         valid, errors = validate_list(raw_dicts, cls)
         items = valid
         if errors:
-            logger.warning(f"{len(errors)} {cls.__name__} rows failed validation, skipped")
+            logger.warning(
+                "%s %s rows failed validation, skipped",
+                len(errors),
+                cls.__name__
+            )
 
     try:
         count = insert_rows(cur, table, fields, items)
         return api_response(True, f"{cls.__name__}s added: {count}")
     except Exception as e:
         return api_response(False, f"Error adding {cls.__name__}: {e}", 500, "error")
-    
+
 
 def update_object(cur, obj, table: str, fields: list[str], pk_field: str):
     """
@@ -67,16 +75,31 @@ def update_object(cur, obj, table: str, fields: list[str], pk_field: str):
     try:
         if getattr(obj, pk_field, None) is None:
             return api_response(
-                False, f"{table[:-1].capitalize()} {pk_field} is required for update", 400, "warning"
+                False,
+                f"{table[:-1].capitalize()} {pk_field} is required for update",
+                400,
+                "warning",
             )
         rowcount = update_row(cur, table, fields, pk_field, obj)
         if rowcount == 0:
-            return api_response(False, f"{table[:-1].capitalize()} not found", 404, "warning")
-        logger.info(f"{table[:-1].capitalize()} with {pk_field}={getattr(obj, pk_field)} updated")
-        return api_response(True, f"{table[:-1].capitalize()} with {pk_field}={getattr(obj, pk_field)} updated")
+            return api_response(
+                False, f"{table[:-1].capitalize()} not found", 404, "warning"
+            )
+        logger.info(
+            "%s with %s=%s updated",
+            table[:-1].capitalize(),
+            pk_field,
+            getattr(obj, pk_field)
+        )
+        return api_response(
+            True,
+            f"{table[:-1].capitalize()} with {pk_field}={getattr(obj, pk_field)} updated"
+        )
     except Exception as e:
-        logger.error(f"Error updating {table[:-1].capitalize()}: {e}")
-        return api_response(False, f"Error updating {table[:-1].capitalize()}: {e}", 500, "error")
+        logger.error("Error updating %s: %s", table[:-1].capitalize(), e)
+        return api_response(
+            False, f"Error updating {table[:-1].capitalize()}: {e}", 500, "error"
+        )
 
 
 def delete_object(cur, table: str, pk_field: str, pk_value: int):
@@ -94,13 +117,24 @@ def delete_object(cur, table: str, pk_field: str, pk_value: int):
     try:
         rowcount = delete_row(cur, table, pk_field, pk_value)
         if rowcount == 0:
-            logger.warning(f"{table[:-1].capitalize()} with {pk_field}={pk_value} not found for deletion")
-            return api_response(False, f"{table[:-1].capitalize()} not found", 404, "warning")
-        logger.info(f"{table[:-1].capitalize()} with {pk_field}={pk_value} deleted")
-        return api_response(True, f"{table[:-1].capitalize()} with {pk_field}={pk_value} deleted")
+            logger.warning(
+                "%s with %s=%s not found for deletion",
+                table[:-1].capitalize(),
+                pk_field,
+                pk_value
+            )
+            return api_response(
+                False, f"{table[:-1].capitalize()} not found", 404, "warning"
+            )
+        logger.info("%s with %s=%s deleted", table[:-1].capitalize(), pk_field, pk_value)
+        return api_response(
+            True, f"{table[:-1].capitalize()} with {pk_field}={pk_value} deleted"
+        )
     except Exception as e:
-        logger.error(f"Error deleting {table[:-1].capitalize()}: {e}")
-        return api_response(False, f"Error deleting {table[:-1].capitalize()}: {e}", 500, "error")
+        logger.error("Error deleting %s: %s", table[:-1].capitalize(), e)
+        return api_response(
+            False, f"Error deleting {table[:-1].capitalize()}: {e}", 500, "error"
+        )
 
 
 @with_db_connection
@@ -110,18 +144,43 @@ def add_banks(cur, *banks):
 
 @with_db_connection
 def add_users(cur, *users):
-    return add_objects(cur, users, table="User", fields=["name", "surname", "birth_day", "accounts"], cls=User)
+    return add_objects(
+        cur,
+        users,
+        table="User",
+        fields=["name", "surname", "birth_day", "accounts"],
+        cls=User,
+    )
 
 
 @with_db_connection
 def add_accounts(cur, *accounts):
-    return add_objects(cur,accounts, table="Account", fields=["user_id", "type", "account_number", "bank_id", "currency", "amount", "status"],
-                        cls=Account)
+    return add_objects(
+        cur,
+        accounts,
+        table="Account",
+        fields=[
+            "user_id",
+            "type",
+            "account_number",
+            "bank_id",
+            "currency",
+            "amount",
+            "status",
+        ],
+        cls=Account,
+    )
 
 
 @with_db_connection
 def update_user(cur, user: User):
-    return update_object(cur,user, table="User", fields=["name", "surname", "birth_day", "accounts"], pk_field="id")
+    return update_object(
+        cur,
+        user,
+        table="User",
+        fields=["name", "surname", "birth_day", "accounts"],
+        pk_field="id",
+    )
 
 
 @with_db_connection
@@ -131,8 +190,21 @@ def update_bank(cur, bank: Bank):
 
 @with_db_connection
 def update_account(cur, account: Account):
-    return update_object(cur, account, table="Account", fields=["user_id", "type", "account_number", "bank_id", "currency", "amount", "status"], 
-                         pk_field="id")
+    return update_object(
+        cur,
+        account,
+        table="Account",
+        fields=[
+            "user_id",
+            "type",
+            "account_number",
+            "bank_id",
+            "currency",
+            "amount",
+            "status",
+        ],
+        pk_field="id",
+    )
 
 
 @with_db_connection
@@ -151,31 +223,34 @@ def delete_account(cur, account_id: int):
 
 
 @with_db_connection
-def transfer_money(cur, sender_account_id: int, receiver_account_id: int, amount: float):
+def transfer_money(
+    cur, sender_account_id: int, receiver_account_id: int, amount: float
+):
 
-        sender, error = get_client_by_id(cur, sender_account_id)
-        if error:
-            return error
-        
-        receiver, error = get_client_by_id(cur, receiver_account_id)
-        if error:
-            return error
+    sender, error = get_client_by_id(cur, sender_account_id)
+    if error:
+        return error
 
-        transfer_result = do_transfer(cur, sender, receiver, amount)
-        if not transfer_result["success"]:
-            return transfer_result
+    receiver, error = get_client_by_id(cur, receiver_account_id)
+    if error:
+        return error
 
-        cur.execute(INSERT_TRANSACTION,
-            (
-                _get_bank_name(cur, sender.bank_id),
-                sender.id,
-                _get_bank_name(cur, receiver.bank_id),
-                receiver.id,
-                sender.currency,
-                amount
-            )
-        )
+    transfer_result = do_transfer(cur, sender, receiver, amount)
+    if not transfer_result["success"]:
         return transfer_result
+
+    cur.execute(
+        INSERT_TRANSACTION,
+        (
+            _get_bank_name(cur, sender.bank_id),
+            sender.id,
+            _get_bank_name(cur, receiver.bank_id),
+            receiver.id,
+            sender.currency,
+            amount,
+        ),
+    )
+    return transfer_result
 
 
 def get_client_by_id(cur, client_id):

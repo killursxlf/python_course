@@ -74,5 +74,6 @@ def main():
     conn.close()
     print(f"Database '{args.db}' initialized successfully.")
 
+
 if __name__ == '__main__':
     main()

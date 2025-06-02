@@ -1,0 +1,12 @@
+ignore-paths:
+  - tests
+
+tools:
+  pylint:
+    disable:
+      - missing-docstring
+      - no-value-for-parameter
+  pyflakes: true
+  mccabe: true
+
+strictness: medium

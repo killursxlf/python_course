@@ -53,4 +53,3 @@ def bank_row_parser(row):
 
 def account_row_parser(row):
     return Account.built_from_dict(row)
-

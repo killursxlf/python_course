@@ -13,14 +13,14 @@ def setup_logging():
     root_logger.setLevel(LOG_LEVEL)
 
     # File-Handler
-    if not any(type(h) is logging.FileHandler for h in root_logger.handlers):
+    if not any(isinstance(h, logging.FileHandler) for h in root_logger.handlers):
         fh = logging.FileHandler(log_path, mode="a", encoding="utf-8")
         fh.setFormatter(formatter)
         fh.setLevel(LOG_LEVEL)  
         root_logger.addHandler(fh)
 
     # Console-Handler 
-    if not any(type(h) is logging.StreamHandler for h in root_logger.handlers):
+    if not any(isinstance(h, logging.StreamHandler) for h in root_logger.handlers):
         ch = logging.StreamHandler()
         ch.setFormatter(formatter)
         ch.setLevel(logging.ERROR)   

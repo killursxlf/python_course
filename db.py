@@ -31,7 +31,7 @@ def with_db_connection(func):
             logging.info("Database operation completed successfully.")
             return result
         except Exception as e:
-            logging.error(f"Database error: {e}")
+            logging.error("Database error: %s", e)
             return api_response(False, f"Database error: {str(e)}", 500, "error")
         finally:
             if cur:

@@ -22,6 +22,6 @@ def do_transfer(cur, sender: Account, receiver: Account, amount: float):
     cur.execute(UPDATE_ACCOUNT_AMOUNT_BY_ID, (new_sender_balance, sender.id))
     cur.execute(UPDATE_ACCOUNT_AMOUNT_BY_ID, (new_receiver_balance, receiver.id))
 
-    msg = f"Transferred {amount} {sender.currency} from {sender.account_number} to {receiver.account_number} ({receiver_amount} {receiver.currency})",
+    msg = f"Transferred {amount} {sender.currency} from {sender.account_number} to {receiver.account_number} ({receiver_amount} {receiver.currency})"
 
     return api_response(True, msg, 200,  "info")

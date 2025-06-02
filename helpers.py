@@ -10,7 +10,7 @@ def api_response(success: bool, message: str, status_code: int = 200, log_type: 
 
     if not in_pytest:
         log_func = getattr(logger, log_type, logger.info)
-        log_func(f"[{status_code}] {message}")
+        log_func("%d %s", status_code, message)
 
     return {
         "success": success,
