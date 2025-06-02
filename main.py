@@ -39,9 +39,9 @@ def main():
     print(add_accounts(*account_dicts))
 
     print("\n=== TRANSFERS ===")
-    print(transfer_money(1, 2, 200, "USD"))  
-    print(transfer_money(3, 4, 100, "USD"))   
-    print(transfer_money(2, 3, 50, "EUR"))    
+    print(transfer_money(1, 2, 200))  
+    print(transfer_money(3, 4, 100))   
+    print(transfer_money(2, 3, 50))    
 
 
     print("\n=== USER TRANSACTIONS (user_id=1) FOR LAST 3 MONTHS ===")

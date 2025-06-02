@@ -15,13 +15,22 @@ def unpack_rows(*args):
     return list(args)
 
 
-def add_objects(conn, raw_items: tuple, table: str, fields: list[str], cls: type,):
+def add_objects(cur, raw_items: tuple, table: str, fields: list[str], cls: type,):
     """
-    Generic bulk‐insert into `table` of dataclass `cls`.
-    1) unpacks *args or [list]
-    2) auto‐validates any dicts into `cls` via validate_dataclass_list
-    3) calls insert_rows() SQL helper
-    Returns api_response dict.
+    Generic bulk-insert into a table of dataclass instances.
+
+    Args:
+        conn: Active SQLite connection.
+        raw_items: Tuple or list of items to insert (dataclass instances or dicts).
+        table: Name of the target database table.
+        fields: List of column names to populate.
+        cls: Dataclass type used for validation.
+
+    Returns:
+        dict: API response with keys:
+            - success (bool)
+            - message (str)
+            - status_code (int)
     """
     items = unpack_rows(*raw_items)
 
@@ -36,13 +45,13 @@ def add_objects(conn, raw_items: tuple, table: str, fields: list[str], cls: type
             logger.warning(f"{len(errors)} {cls.__name__} rows failed validation, skipped")
 
     try:
-        count = insert_rows(conn, table, fields, items)
+        count = insert_rows(cur, table, fields, items)
         return api_response(True, f"{cls.__name__}s added: {count}")
     except Exception as e:
         return api_response(False, f"Error adding {cls.__name__}: {e}", 500, "error")
     
 
-def update_object(conn, obj, table: str, fields: list[str], pk_field: str):
+def update_object(cur, obj, table: str, fields: list[str], pk_field: str):
     """
     Generic update function for a single dataclass row.
     Args:
@@ -60,7 +69,7 @@ def update_object(conn, obj, table: str, fields: list[str], pk_field: str):
             return api_response(
                 False, f"{table[:-1].capitalize()} {pk_field} is required for update", 400, "warning"
             )
-        rowcount = update_row(conn, table, fields, pk_field, obj)
+        rowcount = update_row(cur, table, fields, pk_field, obj)
         if rowcount == 0:
             return api_response(False, f"{table[:-1].capitalize()} not found", 404, "warning")
         logger.info(f"{table[:-1].capitalize()} with {pk_field}={getattr(obj, pk_field)} updated")
@@ -70,7 +79,7 @@ def update_object(conn, obj, table: str, fields: list[str], pk_field: str):
         return api_response(False, f"Error updating {table[:-1].capitalize()}: {e}", 500, "error")
 
 
-def delete_object(conn, table: str, pk_field: str, pk_value: int):
+def delete_object(cur, table: str, pk_field: str, pk_value: int):
     """
     Generic delete function for a single row.
     Args:
@@ -83,7 +92,7 @@ def delete_object(conn, table: str, pk_field: str, pk_value: int):
         dict with api_response
     """
     try:
-        rowcount = delete_row(conn, table, pk_field, pk_value)
+        rowcount = delete_row(cur, table, pk_field, pk_value)
         if rowcount == 0:
             logger.warning(f"{table[:-1].capitalize()} with {pk_field}={pk_value} not found for deletion")
             return api_response(False, f"{table[:-1].capitalize()} not found", 404, "warning")
@@ -95,67 +104,62 @@ def delete_object(conn, table: str, pk_field: str, pk_value: int):
 
 
 @with_db_connection
-def add_banks(conn, *banks):
-    return add_objects(conn, banks, table="Bank", fields=["name"], cls=Bank)
+def add_banks(cur, *banks):
+    return add_objects(cur, banks, table="Bank", fields=["name"], cls=Bank)
 
 
 @with_db_connection
-def add_users(conn, *users):
-    return add_objects(conn, users, table="User", fields=["name", "surname", "birth_day", "accounts"], cls=User)
+def add_users(cur, *users):
+    return add_objects(cur, users, table="User", fields=["name", "surname", "birth_day", "accounts"], cls=User)
 
 
 @with_db_connection
-def add_accounts(conn, *accounts):
-    return add_objects(conn,accounts, table="Account", fields=["user_id", "type", "account_number", "bank_id", "currency", "amount", "status"],
+def add_accounts(cur, *accounts):
+    return add_objects(cur,accounts, table="Account", fields=["user_id", "type", "account_number", "bank_id", "currency", "amount", "status"],
                         cls=Account)
 
 
 @with_db_connection
-def update_user(conn, user: User):
-    return update_object(conn,user, table="User", fields=["name", "surname", "birth_day", "accounts"], pk_field="id")
+def update_user(cur, user: User):
+    return update_object(cur,user, table="User", fields=["name", "surname", "birth_day", "accounts"], pk_field="id")
 
 
 @with_db_connection
-def update_bank(conn, bank: Bank):
-    return update_object(conn, bank, table="Bank", fields=["name"], pk_field="id")
+def update_bank(cur, bank: Bank):
+    return update_object(cur, bank, table="Bank", fields=["name"], pk_field="id")
 
 
 @with_db_connection
-def update_account(conn, account: Account):
-    return update_object(conn, account, table="Account", fields=["user_id", "type", "account_number", "bank_id", "currency", "amount", "status"], 
+def update_account(cur, account: Account):
+    return update_object(cur, account, table="Account", fields=["user_id", "type", "account_number", "bank_id", "currency", "amount", "status"], 
                          pk_field="id")
 
 
 @with_db_connection
-def delete_user(conn, user_id: int):
-    return delete_object(conn, table="User", pk_field="id", pk_value=user_id)
+def delete_user(cur, user_id: int):
+    return delete_object(cur, table="User", pk_field="id", pk_value=user_id)
 
 
 @with_db_connection
-def delete_bank(conn, bank_id: int):
-    return delete_object(conn, table="Bank", pk_field="id", pk_value=bank_id)
+def delete_bank(cur, bank_id: int):
+    return delete_object(cur, table="Bank", pk_field="id", pk_value=bank_id)
 
 
 @with_db_connection
-def delete_account(conn, account_id: int):
-    return delete_object(conn, table="Account", pk_field="id", pk_value=account_id)
+def delete_account(cur, account_id: int):
+    return delete_object(cur, table="Account", pk_field="id", pk_value=account_id)
 
 
 @with_db_connection
-def transfer_money(conn, sender_account_id: int, receiver_account_id: int, amount: float, currency: str):
-    try:
-        cur = conn.cursor()
-        cur.execute(SELECT_ACCOUNT_BY_ID, (sender_account_id,))
-        sender_row = cur.fetchone()
-        if not sender_row:
-            return api_response(False, "Sender account not found", 404, "warning")
-        sender = Account(*sender_row)
+def transfer_money(cur, sender_account_id: int, receiver_account_id: int, amount: float):
 
-        cur.execute(SELECT_ACCOUNT_BY_ID, (receiver_account_id,))
-        receiver_row = cur.fetchone()
-        if not receiver_row:
-            return api_response(False, "Receiver account not found", 404, "warning")
-        receiver = Account(*receiver_row)
+        sender, error = get_client_by_id(cur, sender_account_id)
+        if error:
+            return error
+        
+        receiver, error = get_client_by_id(cur, receiver_account_id)
+        if error:
+            return error
 
         transfer_result = do_transfer(cur, sender, receiver, amount)
         if not transfer_result["success"]:
@@ -173,8 +177,14 @@ def transfer_money(conn, sender_account_id: int, receiver_account_id: int, amoun
         )
         return transfer_result
 
-    except Exception as e:
-        return api_response(False, f"Error during transfer: {e}", 500, "error")
+
+def get_client_by_id(cur, client_id):
+    cur.execute(SELECT_ACCOUNT_BY_ID, (client_id,))
+    client_row = cur.fetchone()
+    if not client_row:
+        return None, api_response(False, "Client account not found", 404, "warning")
+    return Account(*client_row), None
+
 
 def _get_bank_name(cur, bank_id):
     cur.execute(SELECT_BANK_NAME_BY_ID, (bank_id,))

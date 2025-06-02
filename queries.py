@@ -75,7 +75,7 @@ def QUERY_USER_TRANSACTIONS_LAST_3M(placeholders):
     """
 
 
-def insert_rows(conn, table, fields, objs):
+def insert_rows(cur, table, fields, objs):
     """
     Insert multiple rows into a table.
     :param conn: sqlite3.Connection
@@ -84,7 +84,6 @@ def insert_rows(conn, table, fields, objs):
     :param objs: list of dataclass instances
     :return: int (number of inserted rows)
     """
-    cur = conn.cursor()
     placeholders = ', '.join(['?'] * len(fields))
     sql = f"INSERT INTO {table} ({', '.join(fields)}) VALUES ({placeholders})"
     for obj in objs:
@@ -92,7 +91,7 @@ def insert_rows(conn, table, fields, objs):
     return len(objs)
 
 
-def update_row(conn, table, fields, pk_field, obj):
+def update_row(cur, table, fields, pk_field, obj):
     """
     Update a single row in a table by primary key.
     :param conn: sqlite3.Connection
@@ -102,7 +101,6 @@ def update_row(conn, table, fields, pk_field, obj):
     :param obj: dataclass instance (must have pk_field as attribute)
     :return: int (number of affected rows)
     """
-    cur = conn.cursor()
     set_clause = ', '.join([f"{f}=?" for f in fields])
     sql = f"UPDATE {table} SET {set_clause} WHERE {pk_field}=?"
     params = [getattr(obj, f) for f in fields] + [getattr(obj, pk_field)]
@@ -110,7 +108,7 @@ def update_row(conn, table, fields, pk_field, obj):
     return cur.rowcount
 
 
-def delete_row(conn, table, pk_field, pk_value):
+def delete_row(cur, table, pk_field, pk_value):
     """
     Delete a row from a table by primary key.
     :param conn: sqlite3.Connection
@@ -119,7 +117,6 @@ def delete_row(conn, table, pk_field, pk_value):
     :param pk_value: value of the primary key
     :return: int (number of affected rows)
     """
-    cur = conn.cursor()
     sql = f"DELETE FROM {table} WHERE {pk_field}=?"
     cur.execute(sql, (pk_value,))
     return cur.rowcount

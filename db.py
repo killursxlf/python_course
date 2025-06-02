@@ -20,11 +20,13 @@ def with_db_connection(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
         conn = None
+        cur = None
         try:
             conn = sqlite3.connect(DB_PATH)
             conn.execute('PRAGMA foreign_keys = ON;')
             logging.debug("Database connection opened.")
-            result = func(conn, *args, **kwargs)
+            cur = conn.cursor()
+            result = func(cur, *args, **kwargs)
             conn.commit()
             logging.info("Database operation completed successfully.")
             return result
@@ -32,6 +34,8 @@ def with_db_connection(func):
             logging.error(f"Database error: {e}")
             return api_response(False, f"Database error: {str(e)}", 500, "error")
         finally:
+            if cur:
+                cur.close()
             if conn:
                 conn.close()
                 logging.debug("Database connection closed.")

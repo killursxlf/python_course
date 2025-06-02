@@ -90,7 +90,7 @@ class Account:
     @classmethod
     def built_from_dict(cls, row: dict):
         return cls(
-            id=int(row.get("id", 0)) if row.get("id") else None,
+            id=int(row.get("id")) if row.get("id") else None,
             user_id=int(row["user_id"]),
             type=row["type"],
             account_number=row["account_number"],

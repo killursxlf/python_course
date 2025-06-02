@@ -11,13 +11,16 @@ ALLOWED_CURRENCIES = ["USD", "EUR"]
 def mock_validate_full_name(full):
     return ["Lisa", "Konig"]
 
+
 def mock_validate_account_number(acc_id):
     return acc_id
+
 
 def mock_validate_field_value(value, allowed, field):
     if value not in allowed:
         raise ValueError(f"{field} not allowed")
     return value
+
 
 def mock_validate_amount(x):
     if x < 0:
@@ -26,20 +29,15 @@ def mock_validate_amount(x):
 
 # --- Bank tests ---
 
-@pytest.mark.parametrize(
-    "name, expected_name, should_raise",
-    [
-        ("  Sparkasse ", "Sparkasse", False), 
-        ("", None, True),                     
-    ]
-)
-def test_bank_post_init(name, expected_name, should_raise):
-    if should_raise:
-        with pytest.raises(ValueError):
-            Bank(name=name)
-    else:
-        bank = Bank(name=name)
-        assert bank.name == expected_name
+def test_bank_post_init_valid():
+    bank = Bank(name="  Sparkasse ")
+    assert bank.name == "Sparkasse"
+
+
+def test_bank_post_init_invalid():
+    with pytest.raises(ValueError):
+        Bank(name="")
+
 
 def test_bank_built_from_dict():
     row = {"id": "1", "name": "Deutsche Bank"}
@@ -49,22 +47,16 @@ def test_bank_built_from_dict():
 
 # --- User tests ---
 
-@pytest.mark.parametrize(
-    "name, surname, accounts, should_raise",
-    [
-        ("Anna", "Muller", None, False),  
-        ("", "Smith", None, True),        
-    ]
-)
-def test_user_post_init(name, surname, accounts, should_raise):
-    if should_raise:
-        with pytest.raises(ValueError):
-            User(name=name, surname=surname, accounts=accounts)
-    else:
-        user = User(name=name, surname=surname, accounts=accounts)
-        assert user.name == name
-        assert user.surname == surname
-        assert user.accounts == ""
+def test_user_post_init_valid():
+    user = User(name="Anna", surname="Muller", accounts=None)
+    assert user.name == "Anna"
+    assert user.surname == "Muller"
+    assert user.accounts == ""
+
+
+def test_user_post_init_invalid():
+    with pytest.raises(ValueError):
+        User(name="", surname="Smith", accounts=None)
 
 
 @patch("validator.validate_full_name", side_effect=mock_validate_full_name)
@@ -135,42 +127,62 @@ def test_transaction_post_init_valid(mock_val):
     assert txn.sent_amount == 99.99
     assert txn.bank_sender_name == "Bank A"
 
+
 @patch("validator.validate_amount", lambda x: x)
-@pytest.mark.parametrize(
-    "bank_sender, account_sender, bank_receiver, account_receiver, currency, should_raise",
-    [
-        ("BankA", 1, "BankB", 2, "USD", False),    
-        ("", 1, "BankB", 2, "USD", True),         
-        ("BankA", 1, "", 2, "USD", True),         
-        ("BankA", "abc", "BankB", 2, "USD", True), 
-        ("BankA", 1, "BankB", "xyz", "USD", True),  
-        ("BankA", 1, "BankB", 2, "", True),         
-        ("BankA", 1, "BankB", 2, 123, True),        
-    ]
-)
-def test_transaction_post_init_all_cases(bank_sender, account_sender, bank_receiver, account_receiver, currency, should_raise):
-    if should_raise:
-        with pytest.raises(ValueError):
-            Transaction(
-                bank_sender_name=bank_sender,
-                account_sender_id=account_sender,
-                bank_receiver_name=bank_receiver,
-                account_receiver_id=account_receiver,
-                sent_currency=currency,
-                sent_amount=100.0,
-                datetime="2025-01-01"
-            )
-    else:
-        txn = Transaction(
-            bank_sender_name=bank_sender,
-            account_sender_id=account_sender,
-            bank_receiver_name=bank_receiver,
-            account_receiver_id=account_receiver,
-            sent_currency=currency,
-            sent_amount=100.0,
-            datetime="2025-01-01"
-        )
-        assert txn.sent_amount == 100.0
+def test_transaction_post_init_all_valid():
+    txn = Transaction(
+        bank_sender_name="BankA",
+        account_sender_id=1,
+        bank_receiver_name="BankB",
+        account_receiver_id=2,
+        sent_currency="USD",
+        sent_amount=100.0,
+        datetime="2025-01-01"
+    )
+    assert txn.sent_amount == 100.0
+
+
+@patch("validator.validate_amount", lambda x: x)
+def test_transaction_post_init_missing_sender_name():
+    with pytest.raises(ValueError):
+        Transaction("",
+                    1, "BankB", 2, "USD", 100.0, "2025-01-01")
+
+
+@patch("validator.validate_amount", lambda x: x)
+def test_transaction_post_init_missing_receiver_name():
+    with pytest.raises(ValueError):
+        Transaction("BankA",
+                    1, "", 2, "USD", 100.0, "2025-01-01")
+
+
+@patch("validator.validate_amount", lambda x: x)
+def test_transaction_post_init_sender_id_not_int():
+    with pytest.raises(ValueError):
+        Transaction("BankA",
+                    "abc", "BankB", 2, "USD", 100.0, "2025-01-01")
+
+
+@patch("validator.validate_amount", lambda x: x)
+def test_transaction_post_init_receiver_id_not_int():
+    with pytest.raises(ValueError):
+        Transaction("BankA",
+                    1, "BankB", "xyz", "USD", 100.0, "2025-01-01")
+
+
+@patch("validator.validate_amount", lambda x: x)
+def test_transaction_post_init_currency_empty():
+    with pytest.raises(ValueError):
+        Transaction("BankA",
+                    1, "BankB", 2, "", 100.0, "2025-01-01")
+
+
+@patch("validator.validate_amount", lambda x: x)
+def test_transaction_post_init_currency_not_str():
+    with pytest.raises(ValueError):
+        Transaction("BankA",
+                    1, "BankB", 2, 123, 100.0, "2025-01-01")
+
 
 @patch("validator.validate_amount", side_effect=mock_validate_amount)
 def test_transaction_built_from_dict(mock_val):
