@@ -13,6 +13,8 @@ on:
 jobs:
   Custom-Pipeline:
     runs-on: ubuntu-latest
+    env:
+      CURRENCY_API_KEY: ${{ secrets.CURRENCY_API_KEY }}
     steps:
       - uses: actions/checkout@v3
       - name: Set up Python 3.13.0
