@@ -3,9 +3,12 @@ run-name: Pipeline for ${{ github.event.repository.name }}
 
 on:
   workflow_dispatch:
+  pull_request:
+    branches:
+      - feature/lab4_prod
   push:
     branches:
-      - feature/lab4_test
+      - feature/lab4_prod
 
 jobs:
   Custom-Pipeline:
